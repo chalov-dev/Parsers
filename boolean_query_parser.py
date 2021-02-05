@@ -21,9 +21,18 @@ def handler_deli(value):
         return to_str[0]
 
 
+# Разгрузочная функция для отлавливания id и literal
+def calculate_data(left, right, ld, rd):
+    ids_l = left[0].split(ld[0])[0]
+    literal_left = left[0].split(ld[0])
+    ids_r = right[0].split(rd[0])[0]
+    literal_right = right[0].split(rd[0])
+    context = (ids_l, literal_left, ids_r, literal_right)
+    return context
+
+
 def parse(query):
     dict_query = {}
-    handler_query = re.findall(r'\w*[>!=<]\S*[^() ]', query)
     query_split = query.split(' ')
     if ('AND' or "OR") in query_split:
         for i, j in enumerate(query_split):
@@ -49,30 +58,25 @@ def parse(query):
                     handler_query_right = re.findall(r'\w*[>!=<]\S*[^() ]', query_split[i - 1])
                     deli_left = re.findall(r'[>!=<]', query_split[i - 3])
                     deli_right = re.findall(r'[>!=<]', query_split[i - 1])
-                    ids_l = handler_query_left[0].split(deli_left[0])[0]
-                    ids_r = handler_query_right[0].split(deli_right[0])[0]
-                    literal_left = handler_query_left[0].split(deli_left[0])
-                    literal_right = handler_query_right[0].split(deli_right[0])
+                    content_l = calculate_data(handler_query_left, handler_query_right, deli_left, deli_right)
                     dict_query.update(
                         {'left': {'type': 'node', 'op': query_split[i - 2], 'left': {
-                            'type': 'leaf', 'op': deli_left[0], 'id': ids_l, 'literal': handler_deli(literal_left)
-                        }, 'right': {'type': 'leaf', 'op': deli_right[0], 'id': ids_r,
-                                     'literal': handler_deli(literal_right)}}})
-
+                            'type': 'leaf', 'op': deli_left[0], 'id': content_l[0],
+                            'literal': handler_deli(content_l[1])
+                        }, 'right': {'type': 'leaf', 'op': deli_right[0], 'id': content_l[2],
+                                     'literal': handler_deli(content_l[3])}}})
                 if (query_split[i + 1]).startswith('(') and (query_split[i + 3]).endswith(')'):
                     handler_query_left = re.findall(r'\w*[>!=<]\S*[^() ]', query_split[i + 1])
                     handler_query_right = re.findall(r'\w*[>!=<]\S*[^() ]', query_split[i + 3])
                     deli_left = re.findall(r'[>!=<]', query_split[i + 1])
                     deli_right = re.findall(r'[>!=<]', query_split[i + 3])
-                    ids_l = handler_query_left[0].split(deli_left[0])[0]
-                    ids_r = handler_query_right[0].split(deli_right[0])[0]
-                    literal_left = handler_query_left[0].split(deli_left[0])
-                    literal_right = handler_query_right[0].split(deli_right[0])
+                    content_r = calculate_data(handler_query_left, handler_query_right, deli_left, deli_right)
                     dict_query.update(
                         {'right': {'type': 'node', 'op': query_split[i + 2], 'left': {
-                            'type': 'leaf', 'op': deli_left[0], 'id': ids_l, 'literal': handler_deli(literal_left)
-                        }, 'right': {'type': 'leaf', 'op': deli_right[0], 'id': ids_r,
-                                     'literal': handler_deli(literal_right)}}})
+                            'type': 'leaf', 'op': deli_left[0], 'id': content_r[0],
+                            'literal': handler_deli(content_r[1])
+                        }, 'right': {'type': 'leaf', 'op': deli_right[0], 'id': content_r[2],
+                                     'literal': handler_deli(content_r[3])}}})
     else:
         deli = re.findall(r'[>!=<]', query)[0]
         dict_query['type'] = 'leaf'
@@ -87,3 +91,4 @@ def parse(query):
             dict_query['literal'] = to_str[2]
 
     return dict_query
+
